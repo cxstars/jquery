@@ -1,0 +1,154 @@
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>插件开发</title>
+    <style type="text/css">
+	body
+	{
+		font-family:'Verdana','宋体';
+		font-size:12px;
+	}
+	.defaultbar
+	{
+    margin-top: 10px;
+    height: 5px;
+    background-color: #FFFFE0;
+    border: 1px solid #A9C9E2;
+    position: relative;
+    }
+	.defaultbar .jquery-completed
+	{
+    height: 3px;
+    background-color: #7d9edb;
+    top: 1px;
+    left:1px;
+    position: absolute;
+    }
+	.defaultbar .jquery-jslider
+	{
+    height: 15px;
+    background-color: #E6E6FA;
+    border: 1px solid #A5B6C8;
+    top: -6px;
+    display: block;
+    cursor: pointer;
+    position: absolute;
+    }
+    </style>
+<script type="text/javascript" src="jquery.js"></script>	
+<script type="text/javascript">
+(function($){
+	$.extend($.fn,{
+		jSlider:function(setting){
+			//jSlider的默认设置
+			var ps = $.extend({
+			renderTo : $(document.body),
+			enable : true,
+			initPosition : 'max',
+			size : {barWidth : 200,sliderWidth : 5},
+			barCssName : 'defaultbar',
+			completedCssName : 'jquery-completed',
+			sliderCssName : 'jquery-jslider',
+			sliderHover : 'jquery-jslider-hover',
+			onChanging : function(){},
+			onChanged : function() {}
+			},setting);
+			ps.renderTo = (typeof ps.renderTo == 'string') ? $(ps.renderTo) : ps.renderTo;
+			
+			//enter html tree
+			var sliderbar = $("<div><div>&nbsp;</div><div>&nbsp;</div></div>")
+							.attr('class',ps.barCssName)
+							.css('width',ps.size.barWidth)
+							.appendTo(ps.renderTo);
+			
+			var completedbar 	= 	sliderbar.find('div:eq(0)')
+									.attr('class',ps.completeCssName);
+									
+			var slider 	=	sliderbar.find('div:eq(1)')
+							.attr('class',ps.sliderCssName)
+							.css('width',ps.size.sliderWidth);
+							
+			var bw = sliderbar.width(),sw = slider.width();
+			
+			ps.limited = {min : 0,max : bw-sw};
+			
+			if(typeof window.$sliderProcess == 'undefined'){
+				window.$sliderProcess = new Function('obj1','obj2','left','obj1.css(\'left\',left);obj2.css(\'width\',left);');
+			}
+			
+			$sliderProcess(slider,completedbar,eval('ps.limited.'+ps.initPosition));
+			
+			var slide = {
+				drag : function(e){
+					var d = e.data;
+					var l = Math.min(Math.max(e.pageX - d.pageX + d.left, ps.limited.min),ps.limited.max);
+					alert(l);
+					$sliderProcess(slider,completedbar,l);
+					ps.onChanging(l/ps.limited.max,e);
+				},
+				drop:function(e){
+					slider.removeClass(ps.sliderHover);
+					ps.onChange(parseInt(slider.css('left')/sw-ps.limited.max,e));
+					
+					$().unbind('mousemove',slide.drag).unbind('mouseup',slide.drop);
+				}
+			};
+			
+			if(ps.enable) {
+				slider.bind('mousedown',function(e){
+					var d = {
+						left : parseInt(slider.css('left')),
+						pageX : e.pageX
+					};
+					$(this).addClass(ps.sliderHover);
+					$().bind('mousemove',d,slide.drag).bind('mouseup',d,slide.drop);
+				});
+			}
+			
+			slide.data = {bar : sliderbar,completed: completedbar };
+			return slider;
+		},
+		setSliderValue : function(v,callback){
+				try{
+					//validate
+					if(typeof v == 'undefined' || v<0 || v>1){
+						throw new Error('\'v\' must be Float variable between 0 and 1.');
+					}
+					
+					var s = this;
+					
+					//validate
+					if(typeof s == 'undefined' || s.data == 'undefined' || s.data.bar == 'undefined'){
+						throw new Error('You bound the method to an object that is not a slider!');
+					}
+					
+					$sliderProcess(s,s.data.completed,v*s.data.bar.width());
+					
+					if(typeof callback !='undefined'){
+						callback(v);
+					}
+				}
+				catch(e){
+					alert(e.message);
+				}
+			}	
+		
+	});
+})(jQuery)
+
+$(function(){
+	$.fn.jSlider({
+		renderTo:"#test1"
+	})
+})
+</script>
+</head>
+<body>
+	<!--
+	<div id="test1" class="defaultbar">
+		<div class="jquery-completed"></div>
+		<div class="jquery-jslider"></div>
+	</div>
+	-->
+	<div id="test1"></div>
+</body>
+</html>
